@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --lte-sidebar-bg: #343a40;
+  --lte-main-bg: #f4f6f9;
+}
+
+body {
+  @apply bg-[#f4f6f9] text-[#212529];
+  font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  margin: 0;
+}
+
+.el-aside {
+  @apply transition-all duration-300 ease-in-out;
+  background-color: var(--lte-sidebar-bg);
+}
+
+.el-header {
+  @apply bg-white border-b border-gray-200 flex items-center shadow-sm;
+  height: 56px !important;
+}
+
+.el-menu { border-right: none !important; }
+
+/* AdminLTE-style sidebar menu */
+.lte-menu .el-menu-item {
+  height: 46px;
+  line-height: 46px;
+  margin: 4px 8px;
+  border-radius: 4px;
+}
+.lte-menu .el-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+}
+.lte-menu .el-menu-item.is-active {
+  background-color: #007bff !important;
+  color: #fff !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+.lte-menu .el-sub-menu__title {
+  height: 46px;
+  line-height: 46px;
+  margin: 4px 8px;
+  border-radius: 4px;
+}
+.lte-menu .el-sub-menu__title:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+}
+
+/* Custom scrollbar */
+main::-webkit-scrollbar { width: 6px; }
+main::-webkit-scrollbar-thumb { background-color: #ced4da; border-radius: 10px; }
+main::-webkit-scrollbar-track { background: transparent; }
+
+/* LTE Cards */
+.lte-card {
+  @apply bg-white rounded shadow-sm border border-gray-200;
+}
+.lte-card-header {
+  @apply px-4 py-3 border-b border-gray-200 font-semibold text-sm bg-white rounded-t;
+}
+.lte-card-body {
+  @apply p-4;
+}
+
+/* Small info box */
+.info-box {
+  @apply flex items-stretch rounded shadow-sm overflow-hidden bg-white min-h-[80px];
+}
+.info-box-icon {
+  @apply w-[70px] flex items-center justify-center text-white text-2xl;
+}
+.info-box-content {
+  @apply p-3 flex flex-col justify-center;
+}
+.info-box-text {
+  @apply text-xs text-gray-600 uppercase font-medium;
+}
+.info-box-number {
+  @apply text-xl font-bold text-gray-800;
+}
+
+/* Global Responsive Table fix */
+@media (max-width: 1024px) {
+  .el-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}

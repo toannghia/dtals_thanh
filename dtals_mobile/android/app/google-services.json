@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "991453795720",
+    "project_id": "dtals-app",
+    "storage_bucket": "dtals-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:991453795720:android:c107c9c207e5006d18163d",
+        "android_client_info": {
+          "package_name": "zps.dtals.vn"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqncEzjWahEUNh0iBSeNVVMmEbGWORQoo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
