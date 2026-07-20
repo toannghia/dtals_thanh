@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/storage/secure_storage.dart';
 import '../../data/auth_repository.dart';
 
-enum AuthStatus { authenticated, unauthenticated, loading }
+enum AuthStatus { initial, authenticated, unauthenticated, loading }
 
 class AuthState {
   final AuthStatus status;
@@ -19,7 +19,7 @@ class AuthState {
     this.errorMessage,
   });
 
-  factory AuthState.initial() => AuthState(status: AuthStatus.loading);
+  factory AuthState.initial() => AuthState(status: AuthStatus.initial);
 }
 
 class AuthNotifier extends Notifier<AuthState> {

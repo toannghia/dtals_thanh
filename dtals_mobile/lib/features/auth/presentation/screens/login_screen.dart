@@ -60,6 +60,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+
+    if (authState.status == AuthStatus.initial) {
+      return const LaunchingScreen();
+    }
+
     final size = MediaQuery.of(context).size;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -252,6 +257,99 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class LaunchingScreen extends StatelessWidget {
+  const LaunchingScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Scaffold(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark 
+              ? [const Color(0xFF1E3A8A), const Color(0xFF0F172A)]
+              : [const Color(0xFF2563EB), const Color(0xFF1D4ED8)],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Spacer(flex: 3),
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                    width: 2,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.satellite_alt_rounded,
+                  size: 80,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 32),
+              const Text(
+                'DTALS Mobile',
+                style: TextStyle(
+                  fontSize: 40,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: -1,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Hệ thống quản lý trạm CORS',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.white.withOpacity(0.8),
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const Spacer(flex: 2),
+              Column(
+                children: [
+                  const SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 3,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Đang khởi động...',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              const Spacer(flex: 1),
+            ],
+          ),
+        ),
       ),
     );
   }
