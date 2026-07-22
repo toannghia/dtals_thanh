@@ -57,6 +57,8 @@ dependencies:
   image_gallery_saver_plus: ^4.0.1
   path_provider: ^2.1.5
   shared_preferences: ^2.5.4
+  cloudflare_turnstile: ^3.8.0
+  google_mlkit_face_detection: ^0.14.0
 
 dev_dependencies:
   flutter_test:

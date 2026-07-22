@@ -1,5 +1,9 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../../../../../core/network/api_client.dart';
+
+// Conditional import: uses dart:io on mobile, XFile bytes on web
+import 'ekyc_repository_io.dart' if (dart.library.html) 'ekyc_repository_web.dart';
 
 class EkycRepository {
   final ApiClient _apiClient = ApiClient();
@@ -12,10 +16,10 @@ class EkycRepository {
   }) async {
     final formData = FormData.fromMap({
       'documentType': documentType,
-      'front': await MultipartFile.fromFile(frontPath, filename: 'front.jpg'),
+      'front': await buildMultipartFile(frontPath, 'front.jpg'),
       if (backPath != null)
-        'back': await MultipartFile.fromFile(backPath, filename: 'back.jpg'),
-      'selfie': await MultipartFile.fromFile(selfiePath, filename: 'selfie.jpg'),
+        'back': await buildMultipartFile(backPath, 'back.jpg'),
+      'selfie': await buildMultipartFile(selfiePath, 'selfie.jpg'),
     });
 
     final response = await _apiClient.dio.post(
