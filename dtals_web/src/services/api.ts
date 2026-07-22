@@ -19,9 +19,12 @@ api.interceptors.response.use(
     (error) => {
         if (error.response?.status === 401) {
             const authStore = useAuthStore();
+            const url = error.config?.url || '';
             // Only logout if the user was previously authenticated (expired token).
             // Don't logout during login attempts (where 401 = wrong password).
-            if (authStore.token && !error.config?.url?.includes('/auth/login')) {
+            // Don't logout for ekyc/submit - the upload may have succeeded server-side.
+            const isExcluded = url.includes('/auth/login') || url.includes('/ekyc/submit');
+            if (authStore.token && !isExcluded) {
                 authStore.logout();
             }
         }

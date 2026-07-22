@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +13,8 @@ Dio dioClient(Ref ref) {
 }
 
 class ApiClient {
+  static final StreamController<void> unauthorizedStream = StreamController<void>.broadcast();
+
   late Dio dio;
   final SecureStorage _storage = SecureStorage();
 
@@ -19,8 +22,9 @@ class ApiClient {
     dio = Dio(
       BaseOptions(
         baseUrl: AppConfig.baseUrl,
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 15),
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 60), // Longer for file uploads
+        sendTimeout: const Duration(seconds: 60),    // Longer for file uploads
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -39,9 +43,14 @@ class ApiClient {
         },
         onError: (DioException e, handler) async {
           if (e.response?.statusCode == 401) {
-            // Handle unauthorized (session expired)
-            await _storage.deleteToken();
-            // Trigger logout or navigation to login if needed via event bus or provider
+            final path = e.requestOptions.path;
+            // Do NOT logout for ekyc submit - the upload may have succeeded
+            // even if the response has unexpected status
+            final isEkycSubmit = path.contains('/ekyc/submit');
+            if (!isEkycSubmit) {
+              await _storage.deleteToken();
+              unauthorizedStream.add(null);
+            }
           }
           return handler.next(e);
         },
