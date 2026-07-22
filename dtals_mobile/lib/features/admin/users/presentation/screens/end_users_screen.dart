@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/admin_end_user_repository.dart';
@@ -7,25 +8,182 @@ import 'package:intl/intl.dart';
 
 // ─── Provider ────────────────────────────────────────────────────────────────
 
-final endUsersProvider =
-    FutureProvider.family<Map<String, dynamic>, String>((ref, key) async {
-  final parts = key.split('|');
-  final page = int.tryParse(parts[0]) ?? 1;
-  final search =
-      parts.length > 1 && parts[1] != 'null' && parts[1].isNotEmpty
-          ? parts[1]
-          : null;
-  final status =
-      parts.length > 2 && parts[2] != 'null' && parts[2].isNotEmpty
-          ? parts[2]
-          : null;
-  return AdminEndUserRepository().listUsers(
-      page: page, search: search, status: status);
+class EndUsersState {
+  final List<AdminEndUser> users;
+  final bool hasMore;
+  final bool isLoadingMore;
+  final int page;
+  final String search;
+  final String? status;
+  final int total;
+
+  EndUsersState({
+    this.users = const [],
+    this.hasMore = true,
+    this.isLoadingMore = false,
+    this.page = 1,
+    this.search = '',
+    this.status,
+    this.total = 0,
+  });
+
+  EndUsersState copyWith({
+    List<AdminEndUser>? users,
+    bool? hasMore,
+    bool? isLoadingMore,
+    int? page,
+    String? search,
+    String? Function()? status,
+    int? total,
+  }) {
+    return EndUsersState(
+      users: users ?? this.users,
+      hasMore: hasMore ?? this.hasMore,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      page: page ?? this.page,
+      search: search ?? this.search,
+      status: status != null ? status() : this.status,
+      total: total ?? this.total,
+    );
+  }
+}
+
+class EndUsersNotifier extends AsyncNotifier<EndUsersState> {
+  static const int _limit = 20;
+
+  @override
+  FutureOr<EndUsersState> build() async {
+    final res = await AdminEndUserRepository().listUsers(page: 1, limit: _limit);
+    final items = (res['items'] as List<AdminEndUser>?) ?? [];
+    final total = (res['total'] as int?) ?? 0;
+    return EndUsersState(
+      users: items,
+      hasMore: items.length == _limit,
+      page: 1,
+      total: total,
+    );
+  }
+
+  Future<void> loadMore() async {
+    final curr = state.value;
+    if (curr == null || !curr.hasMore || curr.isLoadingMore) return;
+
+    state = AsyncValue.data(curr.copyWith(isLoadingMore: true));
+    try {
+      final nextPage = curr.page + 1;
+      final res = await AdminEndUserRepository().listUsers(
+        page: nextPage,
+        limit: _limit,
+        search: curr.search.isNotEmpty ? curr.search : null,
+        status: curr.status,
+      );
+      final newItems = (res['items'] as List<AdminEndUser>?) ?? [];
+      final total = (res['total'] as int?) ?? curr.total;
+      
+      state = AsyncValue.data(curr.copyWith(
+        users: [...curr.users, ...newItems],
+        hasMore: newItems.length == _limit,
+        isLoadingMore: false,
+        page: nextPage,
+        total: total,
+      ));
+    } catch (e) {
+      state = AsyncValue.data(curr.copyWith(isLoadingMore: false));
+    }
+  }
+
+  Future<void> search(String query) async {
+    final curr = state.value;
+    final status = curr?.status;
+    state = const AsyncValue.loading();
+    try {
+      final res = await AdminEndUserRepository().listUsers(
+        page: 1, 
+        limit: _limit, 
+        search: query.isNotEmpty ? query : null,
+        status: status,
+      );
+      final items = (res['items'] as List<AdminEndUser>?) ?? [];
+      final total = (res['total'] as int?) ?? 0;
+      state = AsyncValue.data(EndUsersState(
+        users: items,
+        hasMore: items.length == _limit,
+        page: 1,
+        search: query,
+        status: status,
+        total: total,
+      ));
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
+  Future<void> setStatusFilter(String? status) async {
+    final curr = state.value;
+    final searchTxt = curr?.search ?? '';
+    state = const AsyncValue.loading();
+    try {
+      final res = await AdminEndUserRepository().listUsers(
+        page: 1, 
+        limit: _limit, 
+        search: searchTxt.isNotEmpty ? searchTxt : null,
+        status: status,
+      );
+      final items = (res['items'] as List<AdminEndUser>?) ?? [];
+      final total = (res['total'] as int?) ?? 0;
+      state = AsyncValue.data(EndUsersState(
+        users: items,
+        hasMore: items.length == _limit,
+        page: 1,
+        search: searchTxt,
+        status: status,
+        total: total,
+      ));
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
+  void refresh() {
+    ref.invalidateSelf();
+  }
+
+  void removeUser(String id) {
+    final curr = state.value;
+    if (curr == null) return;
+    state = AsyncValue.data(curr.copyWith(
+      users: curr.users.where((u) => u.id != id).toList(),
+      total: curr.total > 0 ? curr.total - 1 : 0,
+    ));
+  }
+
+  void updateUserStatus(String id, String newStatus) {
+    final curr = state.value;
+    if (curr == null) return;
+    state = AsyncValue.data(curr.copyWith(
+      users: curr.users.map((u) {
+        if (u.id == id) {
+          return AdminEndUser(
+            id: u.id,
+            username: u.username,
+            fullName: u.fullName,
+            email: u.email,
+            phoneNumber: u.phoneNumber,
+            status: newStatus,
+            kycStatus: u.kycStatus,
+            createdAt: u.createdAt,
+            lastLogin: u.lastLogin,
+          );
+        }
+        return u;
+      }).toList(),
+    ));
+  }
+}
+
+final endUsersProvider = AsyncNotifierProvider<EndUsersNotifier, EndUsersState>(() {
+  return EndUsersNotifier();
 });
-
-// ─── Constants (non-color) ───────────────────────────────────────────────────
-
-const _pageSize = 20;
 
 // ─── Theme-aware color helper ────────────────────────────────────────────────
 //
@@ -41,13 +199,13 @@ class _C {
         dark = Theme.of(ctx).brightness == Brightness.dark;
 
   // Backgrounds
-  Color get bg      => dark ? const Color(0xFF0D1B2A) : cs.surface;
-  Color get surface => dark ? const Color(0xFF16263B) : cs.surfaceContainerLow;
-  Color get card    => dark ? const Color(0xFF1A2D42) : cs.surfaceContainerHighest;
-  Color get input   => dark ? const Color(0xFF1A2B3E) : cs.surfaceContainer;
+  Color get bg      => dark ? const Color(0xFF15202B) : cs.surface;
+  Color get surface => dark ? const Color(0xFF192734) : cs.surfaceContainerLow;
+  Color get card    => dark ? const Color(0xFF22303C) : cs.surfaceContainerHighest;
+  Color get input   => dark ? const Color(0xFF192734) : cs.surfaceContainer;
 
   // Borders / dividers
-  Color get border  => dark ? const Color(0xFF243B55) : cs.outlineVariant;
+  Color get border  => dark ? const Color(0xFF38444D) : cs.outlineVariant;
 
   // Text
   Color get text    => cs.onSurface;
@@ -68,20 +226,36 @@ class EndUsersScreen extends ConsumerStatefulWidget {
 }
 
 class _EndUsersScreenState extends ConsumerState<EndUsersScreen> {
-  String  _search = '';
-  String? _status;
-  int     _page   = 1;
-  final   _searchCtrl = TextEditingController();
-
-  String get _key => '$_page|$_search|$_status';
+  final _searchCtrl = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
   @override
-  void dispose() { _searchCtrl.dispose(); super.dispose(); }
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(endUsersProvider.notifier).refresh();
+    });
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      ref.read(endUsersProvider.notifier).loadMore();
+    }
+  }
+
+  @override
+  void dispose() { 
+    _searchCtrl.dispose(); 
+    _scrollController.dispose();
+    super.dispose(); 
+  }
 
   @override
   Widget build(BuildContext context) {
     final c = _C(context);
-    final async = ref.watch(endUsersProvider(_key));
+    final async = ref.watch(endUsersProvider);
+    final stateData = async.value;
 
     return Container(
       color: c.bg,
@@ -90,13 +264,13 @@ class _EndUsersScreenState extends ConsumerState<EndUsersScreen> {
           _SearchRow(
             c: c,
             controller: _searchCtrl,
-            onSearch: (v) => setState(() { _search = v; _page = 1; }),
+            onSearch: (v) => ref.read(endUsersProvider.notifier).search(v.trim()),
             onAdd: _showAddDialog,
           ),
           _Filters(
             c: c,
-            status: _status,
-            onTap: (v) => setState(() { _status = v; _page = 1; }),
+            status: stateData?.status,
+            onTap: (v) => ref.read(endUsersProvider.notifier).setStatusFilter(v),
           ),
           Expanded(
             child: async.when(
@@ -106,38 +280,42 @@ class _EndUsersScreenState extends ConsumerState<EndUsersScreen> {
                 child: Text('Lỗi: $e',
                     style: TextStyle(color: c.sub))),
               data: (data) {
-                final users = (data['items'] as List<AdminEndUser>?) ?? [];
-                final total = (data['total'] as int?) ?? 0;
-                if (users.isEmpty) {
+                final displayList = data.users.toList();
+                
+                if (displayList.isEmpty && !data.isLoadingMore) {
                   return Center(
                     child: Text('Không có dữ liệu',
                         style: TextStyle(color: c.sub)));
                 }
-                final totalPages =
-                    (total / _pageSize).ceil().clamp(1, 9999);
-                return Column(
-                  children: [
-                    Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(0, 4, 0, 4),
-                        itemCount: users.length,
-                        itemBuilder: (_, i) => _UserRow(
-                          c: c,
-                          user: users[i],
-                          onEdit:   () => _showDetail(users[i]),
-                          onDelete: () => _doDelete(users[i]),
-                        ),
-                      ),
-                    ),
-                    _Footer(
-                      c: c,
-                      page: _page,
-                      total: total,
-                      totalPages: totalPages,
-                      onPrev: _page > 1          ? () => setState(() => _page--) : null,
-                      onNext: _page < totalPages ? () => setState(() => _page++) : null,
-                    ),
-                  ],
+                
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    ref.read(endUsersProvider.notifier).refresh();
+                    await ref.read(endUsersProvider.future);
+                  },
+                  color: c.accent,
+                  child: ListView.separated(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.fromLTRB(0, 4, 0, 16),
+                    itemCount: displayList.length + (data.hasMore ? 1 : 0),
+                    separatorBuilder: (_, __) => const SizedBox(height: 0),
+                    itemBuilder: (_, i) {
+                      if (i == displayList.length) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: CircularProgressIndicator(color: c.accent),
+                          ),
+                        );
+                      }
+                      return _UserRow(
+                        c: c,
+                        user: displayList[i],
+                        onEdit:   () => _showDetail(displayList[i]),
+                        onDelete: () => _doDelete(displayList[i]),
+                      );
+                    },
+                  ),
                 );
               },
             ),
@@ -162,7 +340,7 @@ class _EndUsersScreenState extends ConsumerState<EndUsersScreen> {
     if (ok != true || !mounted) return;
     try {
       await AdminEndUserRepository().deleteUser(user.id);
-      ref.invalidate(endUsersProvider(_key));
+      ref.read(endUsersProvider.notifier).removeUser(user.id);
       if (mounted) {
         AppToast.show(context, 'Đã xóa tài khoản',
             type: AppToastType.success);
@@ -196,7 +374,7 @@ class _EndUsersScreenState extends ConsumerState<EndUsersScreen> {
             try {
               await AdminEndUserRepository()
                   .updateStatus(user.id, ns);
-              ref.invalidate(endUsersProvider(_key));
+              ref.read(endUsersProvider.notifier).updateUserStatus(user.id, ns);
               if (ctx.mounted) { Navigator.pop(ctx); }
               if (mounted) {
                 AppToast.show(
@@ -226,6 +404,7 @@ class _EndUsersScreenState extends ConsumerState<EndUsersScreen> {
     final fc = TextEditingController();
     final ec = TextEditingController();
     final pc = TextEditingController();
+    final pw = TextEditingController();
     final fk = GlobalKey<FormState>();
 
     showDialog(
@@ -233,7 +412,7 @@ class _EndUsersScreenState extends ConsumerState<EndUsersScreen> {
       barrierColor: Colors.black54,
       builder: (ctx) => _AddDialog(
         formKey: fk,
-        username: uc, fullName: fc, email: ec, phone: pc,
+        username: uc, fullName: fc, email: ec, phone: pc, password: pw,
         onSubmit: () async {
           if (!(fk.currentState?.validate() ?? false)) return;
           try {
@@ -242,9 +421,10 @@ class _EndUsersScreenState extends ConsumerState<EndUsersScreen> {
               'fullName':    fc.text.trim(),
               'email':       ec.text.trim(),
               'phoneNumber': pc.text.trim(),
+              'password':    pw.text,
             });
             if (ctx.mounted) { Navigator.of(ctx).pop(); }
-            ref.invalidate(endUsersProvider(_key));
+            ref.read(endUsersProvider.notifier).refresh();
             if (mounted) {
               AppToast.show(context, 'Tạo người dùng thành công',
                   type: AppToastType.success);
@@ -529,90 +709,6 @@ class _Chip extends StatelessWidget {
   }
 }
 
-// ─── _Footer ─────────────────────────────────────────────────────────────────
-
-class _Footer extends StatelessWidget {
-  final _C c;
-  final int page, total, totalPages;
-  final VoidCallback? onPrev, onNext;
-
-  const _Footer({
-    required this.c,
-    required this.page,
-    required this.total,
-    required this.totalPages,
-    this.onPrev,
-    this.onNext,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: c.surface,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              'Tổng số: $total  •  Trang $page trên $totalPages',
-              style: TextStyle(color: c.sub, fontSize: 12),
-            ),
-          ),
-          _PgBtn(c: c, icon: Icons.chevron_left,  enabled: onPrev != null, onTap: onPrev),
-          const SizedBox(width: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-            decoration: BoxDecoration(
-              color: c.accent.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: c.accent.withValues(alpha: 0.3)),
-            ),
-            child: Text(
-              '$page',
-              style: TextStyle(
-                  color: c.accent,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13),
-            ),
-          ),
-          const SizedBox(width: 6),
-          _PgBtn(c: c, icon: Icons.chevron_right, enabled: onNext != null, onTap: onNext),
-        ],
-      ),
-    );
-  }
-}
-
-class _PgBtn extends StatelessWidget {
-  final _C c;
-  final IconData icon;
-  final bool     enabled;
-  final VoidCallback? onTap;
-  const _PgBtn({
-    required this.c,
-    required this.icon,
-    required this.enabled,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: Container(
-        width: 30, height: 30,
-        decoration: BoxDecoration(
-          color: c.card,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: c.border),
-        ),
-        child: Icon(icon, size: 18,
-            color: enabled ? c.sub : c.border),
-      ),
-    );
-  }
-}
-
 // ─── _UserRow ────────────────────────────────────────────────────────────────
 
 class _UserRow extends StatelessWidget {
@@ -680,10 +776,11 @@ class _UserRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 6),
-            _ActionBtn(c: c, icon: Icons.edit_outlined,  onTap: onEdit),
-            const SizedBox(width: 4),
-            _ActionBtn(c: c, icon: Icons.delete_outline, onTap: onDelete,
-                danger: true),
+            if (user.status != 'DELETED') ...[
+              _ActionBtn(c: c, icon: Icons.edit_outlined,  onTap: onEdit),
+              const SizedBox(width: 4),
+              _ActionBtn(c: c, icon: Icons.delete_outline, onTap: onDelete, danger: true),
+            ],
           ],
         ),
       ),
@@ -754,6 +851,7 @@ class _StatusBadge extends StatelessWidget {
     switch (status.toUpperCase()) {
       case 'ACTIVE':   return 'HOẠT ĐỘNG';
       case 'BLOCKED':  return 'ĐÃ KHÓA';
+      case 'DELETED':  return 'ĐÃ KHÓA';
       case 'INACTIVE': return 'VÔ HIỆU';
       default: return status;
     }
@@ -762,7 +860,8 @@ class _StatusBadge extends StatelessWidget {
   Color _color() {
     switch (status.toUpperCase()) {
       case 'ACTIVE':   return const Color(0xFF22D37E);
-      case 'BLOCKED':  return const Color(0xFFFF5C5C);
+      case 'BLOCKED':
+      case 'DELETED':  return const Color(0xFFFF5C5C);
       case 'INACTIVE': return const Color(0xFFFF8C42);
       default: return Colors.grey;
     }
@@ -827,13 +926,13 @@ class _ActionBtn extends StatelessWidget {
 
 class _AddDialog extends StatelessWidget {
   final GlobalKey<FormState>  formKey;
-  final TextEditingController username, fullName, email, phone;
+  final TextEditingController username, fullName, email, phone, password;
   final VoidCallback          onSubmit;
 
   const _AddDialog({
     required this.formKey,
     required this.username, required this.fullName,
-    required this.email,    required this.phone,
+    required this.email,    required this.phone, required this.password,
     required this.onSubmit,
   });
 
@@ -951,6 +1050,19 @@ class _AddDialog extends StatelessWidget {
                         hint: '086xxxxxxx',
                         icon: Icons.phone_outlined,
                         keyboardType: TextInputType.phone,
+                      ),
+                      const SizedBox(height: 10),
+
+                      _dialogLabel(c, 'Mật khẩu'),
+                      _dialogInput(
+                        c: c,
+                        controller: password,
+                        hint: 'Nhập mật khẩu',
+                        icon: Icons.lock_outline,
+                        obscureText: true,
+                        validator: (v) => v == null || v.isEmpty
+                            ? 'Bắt buộc'
+                            : null,
                       ),
                     ],
                   ),

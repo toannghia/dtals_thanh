@@ -44,11 +44,11 @@ class ModernCard extends StatelessWidget {
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Container(
             decoration: BoxDecoration(
-              // Slightly transparent white to reduce glare in dark mode
-              color: color ?? (isDark ? Colors.white.withOpacity(0.88) : Colors.white),
+              // Use Navy Dim surface for dark mode
+              color: color ?? (isDark ? const Color(0xFF192734) : Colors.white),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFFE2E8F0), 
+                color: isDark ? const Color(0xFF38444D) : const Color(0xFFE2E8F0), 
                 width: 1
               ),
             ),
@@ -66,11 +66,8 @@ class ModernCard extends StatelessWidget {
       ),
     );
 
-    // Force Light Theme inside the card so text and icons are always highly visible on the solid white background
-    return Theme(
-      data: AppTheme.lightTheme,
-      child: container,
-    );
+    // Do not force Light Theme so it seamlessly adapts to Dark Mode
+    return container;
   }
 }
 

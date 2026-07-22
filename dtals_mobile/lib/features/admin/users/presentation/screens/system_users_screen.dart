@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/system_user_repository.dart';
@@ -6,8 +7,103 @@ import '../../../../../core/widgets/app_toast.dart';
 
 // ─── Provider ────────────────────────────────────────────────────────────────
 
-final systemUsersProvider = FutureProvider<List<SystemUser>>((ref) async {
-  return SystemUserRepository().listSystemUsers();
+class SystemUsersState {
+  final List<SystemUser> users;
+  final bool hasMore;
+  final bool isLoadingMore;
+  final int page;
+  final String search;
+
+  SystemUsersState({
+    this.users = const [],
+    this.hasMore = true,
+    this.isLoadingMore = false,
+    this.page = 1,
+    this.search = '',
+  });
+
+  SystemUsersState copyWith({
+    List<SystemUser>? users,
+    bool? hasMore,
+    bool? isLoadingMore,
+    int? page,
+    String? search,
+  }) {
+    return SystemUsersState(
+      users: users ?? this.users,
+      hasMore: hasMore ?? this.hasMore,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      page: page ?? this.page,
+      search: search ?? this.search,
+    );
+  }
+}
+
+class SystemUsersNotifier extends AsyncNotifier<SystemUsersState> {
+  @override
+  FutureOr<SystemUsersState> build() async {
+    final users = await SystemUserRepository().listSystemUsers(page: 1, limit: 20);
+    return SystemUsersState(
+      users: users,
+      hasMore: users.length == 20,
+      page: 1,
+    );
+  }
+
+  Future<void> loadMore() async {
+    final curr = state.value;
+    if (curr == null || !curr.hasMore || curr.isLoadingMore) return;
+
+    state = AsyncValue.data(curr.copyWith(isLoadingMore: true));
+    try {
+      final nextPage = curr.page + 1;
+      final newUsers = await SystemUserRepository().listSystemUsers(
+        page: nextPage,
+        limit: 20,
+        search: curr.search,
+      );
+      
+      state = AsyncValue.data(curr.copyWith(
+        users: [...curr.users, ...newUsers],
+        hasMore: newUsers.length == 20,
+        isLoadingMore: false,
+        page: nextPage,
+      ));
+    } catch (e) {
+      state = AsyncValue.data(curr.copyWith(isLoadingMore: false));
+    }
+  }
+
+  Future<void> search(String query) async {
+    state = const AsyncValue.loading();
+    try {
+      final users = await SystemUserRepository().listSystemUsers(page: 1, limit: 20, search: query);
+      state = AsyncValue.data(SystemUsersState(
+        users: users,
+        hasMore: users.length == 20,
+        page: 1,
+        search: query,
+      ));
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
+  void refresh() {
+    ref.invalidateSelf();
+  }
+
+  void removeUser(String id) {
+    final curr = state.value;
+    if (curr == null) return;
+    state = AsyncValue.data(curr.copyWith(
+      users: curr.users.where((u) => u.id != id).toList(),
+    ));
+  }
+}
+
+final systemUsersProvider = AsyncNotifierProvider<SystemUsersNotifier, SystemUsersState>(() {
+  return SystemUsersNotifier();
 });
 
 // ─── Theme-aware color helper ────────────────────────────────────────────────
@@ -21,13 +117,13 @@ class _C {
         dark = Theme.of(ctx).brightness == Brightness.dark;
 
   // Backgrounds
-  Color get bg      => dark ? const Color(0xFF0D1B2A) : cs.surface;
-  Color get surface => dark ? const Color(0xFF16263B) : cs.surfaceContainerLow;
-  Color get card    => dark ? const Color(0xFF1A2D42) : cs.surfaceContainerHighest;
-  Color get input   => dark ? const Color(0xFF1A2B3E) : cs.surfaceContainer;
+  Color get bg      => dark ? const Color(0xFF15202B) : cs.surface;
+  Color get surface => dark ? const Color(0xFF192734) : cs.surfaceContainerLow;
+  Color get card    => dark ? const Color(0xFF22303C) : cs.surfaceContainerHighest;
+  Color get input   => dark ? const Color(0xFF192734) : cs.surfaceContainer;
 
   // Borders / dividers
-  Color get border  => dark ? const Color(0xFF243B55) : cs.outlineVariant;
+  Color get border  => dark ? const Color(0xFF38444D) : cs.outlineVariant;
 
   // Text
   Color get text    => cs.onSurface;
@@ -48,12 +144,54 @@ class SystemUsersScreen extends ConsumerStatefulWidget {
 }
 
 class _SystemUsersScreenState extends ConsumerState<SystemUsersScreen> {
-  String _search = '';
+  List<String> _fetchedRoles = [
+    'ACCOUNTANT',
+    'AUTHORITY',
+    'CSKH',
+    'DRIVER',
+    'END_USER',
+    'GOV',
+    'RETAILER',
+    'SUPER_ADMIN',
+  ];
+
+  Future<void> _loadRoles() async {
+    try {
+      final roles = await SystemUserRepository().listRoles();
+      if (roles.isNotEmpty && mounted) {
+        setState(() {
+          _fetchedRoles = roles;
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to load roles: ');
+    }
+  }
+
+  bool _hideEndUser = true; // Mặc định ẩn End User cho gọn màn hình giống Web
   final _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadRoles();
+    _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(systemUsersProvider.notifier).refresh();
+    });
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      ref.read(systemUsersProvider.notifier).loadMore();
+    }
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -61,13 +199,6 @@ class _SystemUsersScreenState extends ConsumerState<SystemUsersScreen> {
   Widget build(BuildContext context) {
     final c = _C(context);
     final usersAsync = ref.watch(systemUsersProvider);
-    final filteredAsync = usersAsync.whenData((users) {
-      if (_search.isEmpty) return users;
-      return users
-          .where((u) =>
-              u.username.toLowerCase().contains(_search.toLowerCase()))
-          .toList();
-    });
 
     return Container(
       color: c.bg,
@@ -79,49 +210,91 @@ class _SystemUsersScreenState extends ConsumerState<SystemUsersScreen> {
             _SearchRow(
               c: c,
               controller: _searchController,
-              onSearch: (v) => setState(() => _search = v.trim()),
+              onSearch: (v) {
+                ref.read(systemUsersProvider.notifier).search(v.trim());
+              },
               onAdd: () => _showAddEditDialog(),
             ),
 
             // ── Section label ───────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 6, 14, 8),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'DANH SÁCH NHÂN VIÊN',
-                  style: TextStyle(
-                    color: c.sub,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'DANH SÁCH NHÂN VIÊN',
+                    style: TextStyle(
+                      color: c.sub,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
                   ),
-                ),
+                  Row(
+                    children: [
+                      Text('Ẩn End User', style: TextStyle(color: c.sub, fontSize: 12, fontWeight: FontWeight.w600)),
+                      const SizedBox(width: 6),
+                      SizedBox(
+                        height: 24,
+                        child: Switch(
+                          value: _hideEndUser,
+                          onChanged: (v) => setState(() => _hideEndUser = v),
+                          activeColor: c.accent,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
 
             // ── List ────────────────────────────────────────────────────
             Expanded(
-              child: filteredAsync.when(
+              child: usersAsync.when(
                 loading: () => Center(
                     child: CircularProgressIndicator(color: c.accent)),
                 error: (err, _) => Center(
                   child: Text('Lỗi: $err',
                       style: TextStyle(color: c.sub)),
                 ),
-                data: (users) {
-                  if (users.isEmpty) {
+                data: (state) {
+                  Iterable<SystemUser> filtered = state.users;
+                  if (_hideEndUser) {
+                    filtered = filtered.where((u) => !u.roles.contains('END_USER'));
+                  }
+                  
+                  final displayList = filtered.toList();
+
+                  if (displayList.isEmpty && !state.isLoadingMore) {
                     return Center(
                       child: Text('Chưa có nhân viên nào',
                           style: TextStyle(color: c.sub)),
                     );
                   }
-                  return ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
-                    itemCount: users.length,
-                    separatorBuilder: (_, __) =>
-                        const SizedBox(height: 10),
-                    itemBuilder: (context, index) =>
-                        _buildUserCard(c, users[index]),
+                  return RefreshIndicator(
+                    onRefresh: () async {
+                      ref.read(systemUsersProvider.notifier).refresh();
+                      await ref.read(systemUsersProvider.future);
+                    },
+                    color: c.accent,
+                    child: ListView.separated(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
+                      itemCount: displayList.length + (state.hasMore ? 1 : 0),
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        if (index == displayList.length) {
+                          return Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: CircularProgressIndicator(color: c.accent),
+                            ),
+                          );
+                        }
+                        return _buildUserCard(c, displayList[index]);
+                      },
+                    ),
                   );
                 },
               ),
@@ -193,7 +366,13 @@ class _SystemUsersScreenState extends ConsumerState<SystemUsersScreen> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                _buildRoleChip(role),
+                Row(
+                  children: [
+                    _buildRoleChip(role),
+                    const SizedBox(width: 4),
+                    _StatusBadge(status: user.status),
+                  ],
+                ),
               ],
             ),
           ),
@@ -218,10 +397,13 @@ class _SystemUsersScreenState extends ConsumerState<SystemUsersScreen> {
     Color color;
     switch (role.toUpperCase()) {
       case 'SUPER_ADMIN':  color = Colors.red;         break;
-      case 'ADMIN':        color = Colors.orange;      break;
-      case 'TECH':         color = Colors.blue;        break;
-      case 'ACCOUNTANT':   color = Colors.teal;        break;
+      case 'AUTHORITY':    color = Colors.orange;      break;
       case 'GOV':          color = Colors.indigo;      break;
+      case 'CSKH':         color = Colors.blue;        break;
+      case 'ACCOUNTANT':   color = Colors.teal;        break;
+      case 'RETAILER':     color = Colors.purple;      break;
+      case 'DRIVER':       color = Colors.brown;       break;
+      case 'END_USER':     color = Colors.blueGrey;    break;
       default:             color = Colors.grey;
     }
     return Container(
@@ -242,29 +424,19 @@ class _SystemUsersScreenState extends ConsumerState<SystemUsersScreen> {
 
   void _showAddEditDialog({SystemUser? user}) {
     final isEditing = user != null;
-    final usernameCtrl =
-        TextEditingController(text: user?.username ?? '');
-    final fullNameCtrl =
-        TextEditingController(text: user?.fullName ?? '');
-    final emailCtrl = TextEditingController();
+    final usernameCtrl = TextEditingController(text: user?.username ?? '');
+    final fullNameCtrl = TextEditingController(text: user?.fullName ?? '');
+    final emailCtrl = TextEditingController(text: user?.email ?? '');
     final passwordCtrl = TextEditingController();
 
-    String selectedRole = user?.roles.isNotEmpty == true
-        ? user!.roles.first
-        : 'TECH';
-    final availableRoles = {
-      'SUPER_ADMIN': 'Super Admin',
-      'ADMIN': 'Admin',
-      'TECH': 'Kỹ thuật',
-      'ACCOUNTANT': 'Kế toán',
-      'GOV': 'Cơ quan',
-      'END_USER': 'End user',
+    String selectedRole = user?.roles.isNotEmpty == true ? user!.roles.first : 'END_USER';
+    final Map<String, String> availableRoles = {
+      for (var r in _fetchedRoles) r: r
     };
     if (!availableRoles.containsKey(selectedRole)) {
-      selectedRole = 'TECH';
+      selectedRole = 'END_USER';
     }
-    String selectedStatus =
-        user?.isActive == true ? 'ACTIVE' : 'INACTIVE';
+    String selectedStatus = user?.status ?? 'ACTIVE';
     final formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -274,8 +446,7 @@ class _SystemUsersScreenState extends ConsumerState<SystemUsersScreen> {
           final c = _C(ctx);
           return Dialog(
             backgroundColor: Colors.transparent,
-            insetPadding: const EdgeInsets.symmetric(
-                horizontal: 12, vertical: 16),
+            insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
             child: Container(
               decoration: BoxDecoration(
                 color: c.surface,
@@ -289,178 +460,109 @@ class _SystemUsersScreenState extends ConsumerState<SystemUsersScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // ── Dialog title ────────────────────────────────
                       Text(
-                        isEditing ? 'Sửa nhân viên' : 'Thêm nhân viên mới',
+                        isEditing ? 'Sửa Nhân Viên' : 'Thêm Nhân Viên',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: c.text,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700),
+                        style: TextStyle(color: c.text, fontSize: 18, fontWeight: FontWeight.w700),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 16),
 
-                      // ── Info card ───────────────────────────────────
-                      Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: c.card,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: c.border),
+                      if (isEditing) ...[
+                        _dialogLabel(c, 'ID Hệ thống'),
+                        _dialogInput(
+                          c: c,
+                          controller: TextEditingController(text: user!.id),
+                          hint: '',
+                          icon: Icons.tag,
+                          enabled: false,
                         ),
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                            Container(
-                              width: 56, height: 56,
-                              decoration: BoxDecoration(
-                                color: c.accent.withValues(alpha: 0.1),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                    color: c.accent.withValues(alpha: 0.3)),
-                              ),
-                              child: Icon(Icons.person_outline,
-                                  color: c.accent, size: 30),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              'Thông tin nhân sự',
-                              style: TextStyle(
-                                  color: c.text,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w700),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Điền đầy đủ các thông tin bên dưới để\nkhởi tạo tài khoản mới trong hệ thống.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                  color: c.sub, fontSize: 13),
-                            ),
-                            const SizedBox(height: 16),
+                        const SizedBox(height: 10),
+                      ],
 
-                            // ── Fields ──────────────────────────────
-                            _dialogLabel(c, 'Tên đăng nhập'),
-                            _dialogInput(
-                              c: c,
-                              controller: usernameCtrl,
-                              hint: 'Ví dụ: thanhdtals',
-                              icon: Icons.person_outline,
-                              enabled: !isEditing,
-                              validator: (v) => v == null ||
-                                      v.trim().isEmpty
-                                  ? 'Bắt buộc'
-                                  : null,
-                            ),
-                            const SizedBox(height: 10),
-
-                            _dialogLabel(c, 'Họ và tên'),
-                            _dialogInput(
-                              c: c,
-                              controller: fullNameCtrl,
-                              hint: 'Nguyễn Văn A',
-                              icon: Icons.badge_outlined,
-                              validator: (v) => v == null ||
-                                      v.trim().isEmpty
-                                  ? 'Bắt buộc'
-                                  : null,
-                            ),
-                            const SizedBox(height: 10),
-
-                            if (!isEditing) ...[
-                              _dialogLabel(c, 'Email công việc'),
-                              _dialogInput(
-                                c: c,
-                                controller: emailCtrl,
-                                hint: 'name@company.com',
-                                icon: Icons.email_outlined,
-                                keyboardType:
-                                    TextInputType.emailAddress,
-                                validator: (v) => v == null ||
-                                        v.trim().isEmpty
-                                    ? 'Bắt buộc'
-                                    : null,
-                              ),
-                              const SizedBox(height: 10),
-                            ],
-
-                            _dialogLabel(c, 'Mật khẩu tạm thời'),
-                            _dialogInput(
-                              c: c,
-                              controller: passwordCtrl,
-                              hint: '••••••••',
-                              icon: Icons.lock_outline,
-                              obscureText: true,
-                              validator: (v) =>
-                                  !isEditing &&
-                                          (v == null || v.isEmpty)
-                                      ? 'Bắt buộc'
-                                      : null,
-                            ),
-                            const SizedBox(height: 10),
-
-                            // ── Role & Status dropdowns ──────────────
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: DropdownButtonFormField<String>(
-                                    initialValue: selectedRole,
-                                    dropdownColor: c.card,
-                                    style: TextStyle(color: c.text),
-                                    decoration:
-                                        _dropdownDeco(c, 'Phân quyền'),
-                                    items: availableRoles.entries
-                                        .map((e) => DropdownMenuItem(
-                                              value: e.key,
-                                              child: Text(e.value),
-                                            ))
-                                        .toList(),
-                                    onChanged: (v) => setDialogState(
-                                        () => selectedRole = v!),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: DropdownButtonFormField<String>(
-                                    initialValue: selectedStatus,
-                                    dropdownColor: c.card,
-                                    style: TextStyle(color: c.text),
-                                    decoration:
-                                        _dropdownDeco(c, 'Trạng thái'),
-                                    items: const [
-                                      DropdownMenuItem(
-                                          value: 'ACTIVE',
-                                          child: Text('Hoạt động')),
-                                      DropdownMenuItem(
-                                          value: 'INACTIVE',
-                                          child: Text('Khóa')),
-                                    ],
-                                    onChanged: (v) => setDialogState(
-                                        () => selectedStatus = v!),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                      _dialogLabel(c, 'Phân quyền'),
+                      DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        value: selectedRole,
+                        dropdownColor: c.card,
+                        style: TextStyle(color: c.text),
+                        decoration: _dropdownDeco(c),
+                        items: availableRoles.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
+                        onChanged: (v) => setDialogState(() => selectedRole = v!),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
 
-                      // ── Action buttons ──────────────────────────────
+                      _dialogLabel(c, 'Tên đăng nhập'),
+                      _dialogInput(
+                        c: c,
+                        controller: usernameCtrl,
+                        hint: 'Ví dụ: thanhdtals',
+                        icon: Icons.person_outline,
+                        enabled: !isEditing,
+                        validator: (v) => v == null || v.trim().isEmpty ? 'Bắt buộc' : null,
+                      ),
+                      const SizedBox(height: 10),
+
+                      _dialogLabel(c, 'Họ và tên'),
+                      _dialogInput(
+                        c: c,
+                        controller: fullNameCtrl,
+                        hint: 'Nguyễn Văn A',
+                        icon: Icons.badge_outlined,
+                        validator: (v) => v == null || v.trim().isEmpty ? 'Bắt buộc' : null,
+                      ),
+                      const SizedBox(height: 10),
+
+                      if (!isEditing) ...[
+                        _dialogLabel(c, 'Email công việc'),
+                        _dialogInput(
+                          c: c,
+                          controller: emailCtrl,
+                          hint: 'name@company.com',
+                          icon: Icons.email_outlined,
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (v) => v == null || v.trim().isEmpty ? 'Bắt buộc' : null,
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+
+                      _dialogLabel(c, 'Mật khẩu tạm thời'),
+                      _dialogInput(
+                        c: c,
+                        controller: passwordCtrl,
+                        hint: '••••••••',
+                        icon: Icons.lock_outline,
+                        obscureText: true,
+                        validator: (v) => !isEditing && (v == null || v.isEmpty) ? 'Bắt buộc' : null,
+                      ),
+                      const SizedBox(height: 10),
+
+                      _dialogLabel(c, 'Trạng thái'),
+                      DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        value: selectedStatus,
+                        dropdownColor: c.card,
+                        style: TextStyle(color: c.text),
+                        decoration: _dropdownDeco(c),
+                        items: [
+                          const DropdownMenuItem(value: 'ACTIVE', child: Text('Hoạt động')),
+                          const DropdownMenuItem(value: 'INACTIVE', child: Text('Khóa')),
+                          if (selectedStatus == 'DELETED')
+                            const DropdownMenuItem(value: 'DELETED', child: Text('Đã xóa')),
+                        ],
+                        onChanged: (v) => setDialogState(() => selectedStatus = v!),
+                      ),
+                      const SizedBox(height: 20),
+
                       Row(
                         children: [
                           Expanded(
                             child: OutlinedButton(
-                              onPressed: () =>
-                                  Navigator.of(ctx).pop(),
+                              onPressed: () => Navigator.of(ctx).pop(),
                               style: OutlinedButton.styleFrom(
-                                minimumSize:
-                                    const Size.fromHeight(44),
-                                side: BorderSide(color: c.border),
                                 foregroundColor: c.text,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(12)),
+                                side: BorderSide(color: c.border),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
                               child: const Text('Hủy bỏ'),
                             ),
@@ -469,74 +571,48 @@ class _SystemUsersScreenState extends ConsumerState<SystemUsersScreen> {
                           Expanded(
                             child: ElevatedButton(
                               onPressed: () async {
-                                if (formKey.currentState?.validate() ??
-                                    false) {
+                                if (formKey.currentState?.validate() ?? false) {
                                   try {
-                                    final data =
-                                        <String, dynamic>{
-                                      'username':
-                                          usernameCtrl.text.trim(),
-                                      'fullName':
-                                          fullNameCtrl.text.trim(),
+                                    final data = <String, dynamic>{
+                                      'username': usernameCtrl.text.trim(),
+                                      'fullName': fullNameCtrl.text.trim(),
                                       'roleName': selectedRole,
                                     };
-                                    if (passwordCtrl
-                                            .text.isNotEmpty) {
-                                      data['password'] =
-                                          passwordCtrl.text;
+                                    if (passwordCtrl.text.isNotEmpty) {
+                                      data['password'] = passwordCtrl.text;
                                     }
                                     if (!isEditing) {
-                                      data['email'] =
-                                          emailCtrl.text.trim();
+                                      data['email'] = emailCtrl.text.trim();
                                     }
                                     if (isEditing) {
                                       data['status'] = selectedStatus;
                                     }
-
                                     if (isEditing) {
-                                      await SystemUserRepository()
-                                          .updateSystemUser(
-                                              user.id, data);
+                                      await SystemUserRepository().updateSystemUser(user.id, data);
                                     } else {
-                                      await SystemUserRepository()
-                                          .createSystemUser(data);
+                                      await SystemUserRepository().createSystemUser(data);
                                     }
-
                                     if (ctx.mounted) {
                                       Navigator.of(ctx).pop();
                                     }
                                     ref.invalidate(systemUsersProvider);
                                     if (mounted) {
-                                      AppToast.show(
-                                        context,
-                                        isEditing
-                                            ? 'Cập nhật thành công'
-                                            : 'Tạo nhân viên thành công',
-                                        type: AppToastType.success,
-                                      );
+                                      AppToast.show(context, isEditing ? 'Cập nhật thành công' : 'Tạo nhân viên thành công', type: AppToastType.success);
                                     }
                                   } catch (e) {
                                     if (mounted) {
-                                      AppToast.show(context,
-                                          'Lỗi: $e',
-                                          type: AppToastType.error);
+                                      AppToast.show(context, 'Lỗi: $e', type: AppToastType.error);
                                     }
                                   }
                                 }
                               },
                               style: ElevatedButton.styleFrom(
-                                minimumSize:
-                                    const Size.fromHeight(44),
                                 backgroundColor: c.accent,
                                 foregroundColor: c.onAccent,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
-                              child: Text(isEditing
-                                  ? 'Cập nhật'
-                                  : 'Tạo mới'),
+                              child: Text(isEditing ? 'Cập nhật' : 'Thêm mới'),
                             ),
                           ),
                         ],
@@ -551,6 +627,7 @@ class _SystemUsersScreenState extends ConsumerState<SystemUsersScreen> {
       ),
     );
   }
+
 
   // ── Dialog helpers ────────────────────────────────────────────────────────
 
@@ -568,10 +645,8 @@ class _SystemUsersScreenState extends ConsumerState<SystemUsersScreen> {
     );
   }
 
-  InputDecoration _dropdownDeco(_C c, String label) {
+  InputDecoration _dropdownDeco(_C c) {
     return InputDecoration(
-      labelText: label,
-      labelStyle: TextStyle(color: c.sub, fontSize: 13),
       filled: true,
       fillColor: c.input,
       contentPadding:
@@ -661,7 +736,7 @@ class _SystemUsersScreenState extends ConsumerState<SystemUsersScreen> {
     if (confirmed == true) {
       try {
         await SystemUserRepository().deleteSystemUser(user.id);
-        ref.invalidate(systemUsersProvider);
+        ref.read(systemUsersProvider.notifier).removeUser(user.id);
         if (mounted) {
           AppToast.show(context, 'Đã xóa nhân viên',
               type: AppToastType.success);
@@ -704,6 +779,7 @@ class _SearchRowState extends State<_SearchRow> {
     super.initState();
     _focusNode.addListener(_onFocusChange);
     widget.controller.addListener(_onTextChanged);
+    
     _showClear = widget.controller.text.isNotEmpty;
   }
 
@@ -834,3 +910,53 @@ class _SearchRowState extends State<_SearchRow> {
     );
   }
 }
+
+// ── Status badge ──────────────────────────────────────────────────────────
+
+class _StatusBadge extends StatelessWidget {
+  final String status;
+  const _StatusBadge({required this.status});
+
+  String _label() {
+    switch (status.toUpperCase()) {
+      case 'ACTIVE':
+        return 'HOẠT ĐỘNG';
+      case 'INACTIVE':
+      case 'BLOCKED':
+      case 'DELETED':
+        return 'ĐÃ KHÓA';
+      default:
+        return status;
+    }
+  }
+
+  Color _color() {
+    switch (status.toUpperCase()) {
+      case 'ACTIVE':
+        return const Color(0xFF22D37E);
+      case 'INACTIVE':
+      case 'BLOCKED':
+      case 'DELETED':
+        return const Color(0xFFFF5C5C);
+      default:
+        return Colors.grey;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _color();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        _label(),
+        style: TextStyle(fontSize: 9, color: color, fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+}
+

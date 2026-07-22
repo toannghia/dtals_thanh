@@ -126,9 +126,9 @@ class AppTheme {
 
   static ThemeData get darkTheme {
     // Premium Slate Dark Mode matching UI-UX Pro Max Guidelines
-    const darkBg = Color(0xFF0F172A); // slate-900
-    const darkSurface = Color(0xFF1E293B); // slate-800
-    const borderDark = Color(0xFF334155); // slate-700
+    const darkBg = Color(0xFF15202B); // Navy Dim background
+    const darkSurface = Color(0xFF192734); // Navy Dim surface
+    const borderDark = Color(0xFF38444D); // Navy Dim border
     const cyanAccent = Color(0xFF38BDF8); // sky-400
 
     return ThemeData(

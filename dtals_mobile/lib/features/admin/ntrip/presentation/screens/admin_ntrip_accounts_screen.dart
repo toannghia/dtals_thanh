@@ -264,25 +264,35 @@ class _AdminNtripAccountsScreenState extends ConsumerState<AdminNtripAccountsScr
                   ],
                 ),
                 const SizedBox(height: 6),
-                Row(
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    if (startTime != null) ...[
-                      Icon(Icons.date_range_outlined, color: c.sub, size: 12),
-                      const SizedBox(width: 3),
-                      Text(
-                        'Từ: ${DateFormat('dd/MM/yyyy').format(startTime)}',
-                        style: TextStyle(color: c.sub, fontSize: 11),
+                    if (startTime != null)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.date_range_outlined, color: c.sub, size: 12),
+                          const SizedBox(width: 3),
+                          Text(
+                            'Từ: ${DateFormat('dd/MM/yyyy').format(startTime)}',
+                            style: TextStyle(color: c.sub, fontSize: 11),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 12),
-                    ],
-                    if (endTime != null) ...[
-                      Icon(Icons.event_busy_outlined, color: c.sub, size: 12),
-                      const SizedBox(width: 3),
-                      Text(
-                        'Đến: ${DateFormat('dd/MM/yyyy').format(endTime)}',
-                        style: TextStyle(color: c.sub, fontSize: 11),
+                    if (endTime != null)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.event_busy_outlined, color: c.sub, size: 12),
+                          const SizedBox(width: 3),
+                          Text(
+                            'Đến: ${DateFormat('dd/MM/yyyy').format(endTime)}',
+                            style: TextStyle(color: c.sub, fontSize: 11),
+                          ),
+                        ],
                       ),
-                    ],
                   ],
                 ),
               ],

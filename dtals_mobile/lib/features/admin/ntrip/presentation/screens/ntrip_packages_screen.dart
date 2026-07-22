@@ -399,6 +399,7 @@ class _NtripPackagesScreenState extends ConsumerState<NtripPackagesScreen> {
                                       children: [
                                         _dialogLabel(c, 'Đơn vị'),
                                         DropdownButtonFormField<String>(
+                                          isExpanded: true,
                                           value: selectedUnit,
                                           dropdownColor: c.card,
                                           style: TextStyle(color: c.text, fontSize: 14),
