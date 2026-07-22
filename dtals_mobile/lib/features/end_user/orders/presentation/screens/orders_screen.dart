@@ -38,10 +38,10 @@ class _OrdersPageColors {
 
     if (isDark) {
       return const _OrdersPageColors._(
-        background: Color(0xFF121212),
-        card: Color(0xFF1E1E1E),
-        cardInset: Color(0xFF161616),
-        border: Color(0xFF2A3340),
+        background: Color(0xFF15202B),
+        card: Color(0xFF192734),
+        cardInset: Color(0xFF15202B),
+        border: Color(0xFF38444D),
         accent: Color(0xFF4FC3F7),
         onSurface: Color(0xFFFFFFFF),
         label: Color(0xFF94A3B8),

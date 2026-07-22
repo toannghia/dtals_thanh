@@ -213,7 +213,7 @@ class _AccountCard extends StatelessWidget {
     final dateFormat = DateFormat('dd/MM/yyyy');
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? const Color(0xFF14181F) : colorScheme.surface;
+    final cardColor = isDark ? const Color(0xFF192734) : colorScheme.surface;
     final cardBorder = isDark ? const Color(0xFF1F2937) : colorScheme.outlineVariant;
     final mutedText = colorScheme.onSurface.withOpacity(isDark ? 0.7 : 0.6);
     final isActive = account.isActive == true;
@@ -437,7 +437,7 @@ class _AccountActionButton extends StatelessWidget {
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           foregroundColor: AppTheme.primaryColor,
-          backgroundColor: isDark ? const Color(0xFF0F172A) : colorScheme.surface,
+          backgroundColor: isDark ? const Color(0xFF192734) : colorScheme.surface,
           side: BorderSide(
             color: AppTheme.primaryColor.withValues(alpha: isDark ? 0.45 : 0.35),
           ),
@@ -510,7 +510,7 @@ class _TechInfoTile extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final borderColor = isDark ? const Color(0xFF1F2937) : colorScheme.outlineVariant;
-    final tileColor = isDark ? const Color(0xFF0F131A) : colorScheme.surfaceVariant;
+    final tileColor = isDark ? const Color(0xFF192734) : colorScheme.surfaceVariant;
     final labelColor = colorScheme.onSurface.withOpacity(isDark ? 0.6 : 0.7);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

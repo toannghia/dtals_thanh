@@ -43,9 +43,9 @@ class _ProfilePageColors {
 
     if (isDark) {
       return const _ProfilePageColors._(
-        background: Color(0xFF121212),
-        card: Color(0xFF1E1E1E),
-        border: Color(0xFF2A3340),
+        background: Color(0xFF15202B),
+        card: Color(0xFF192734),
+        border: Color(0xFF38444D),
         accent: Color(0xFF4FC3F7),
         onSurface: Color(0xFFFFFFFF),
         label: Color(0xFF94A3B8),
@@ -691,13 +691,13 @@ class _EditProfileColors {
 
     if (isDark) {
       return const _EditProfileColors._(
-        background: Color(0xFF000000),
-        fieldBg: Color(0xFF1C1C1E),
+        background: Color(0xFF15202B),
+        fieldBg: Color(0xFF192734),
         onSurface: Color(0xFFFFFFFF),
         label: Color(0xFF94A3B8),
         muted: Color(0xFF64748B),
         accent: Color(0xFF4FC3F7),
-        noteCard: Color(0xFF14181F),
+        noteCard: Color(0xFF22303C),
         submitFg: Color(0xFF0B0F14),
       );
     }

@@ -91,7 +91,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: isDark 
-                    ? [const Color(0xFF1E3A8A), const Color(0xFF0F172A)]
+                    ? [const Color(0xFF1E3A8A), const Color(0xFF15202B)]
                     : [const Color(0xFF2563EB), const Color(0xFF1D4ED8)],
                 ),
               ),
@@ -279,7 +279,7 @@ class LaunchingScreen extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: isDark 
-              ? [const Color(0xFF1E3A8A), const Color(0xFF0F172A)]
+              ? [const Color(0xFF1E3A8A), const Color(0xFF15202B)]
               : [const Color(0xFF2563EB), const Color(0xFF1D4ED8)],
           ),
         ),

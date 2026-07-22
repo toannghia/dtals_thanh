@@ -115,9 +115,9 @@ class _SupportDetailScreenState extends ConsumerState<SupportDetailScreen> {
     final profileAsync = ref.watch(profileProvider);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final chatBackgroundColor = isDark ? const Color(0xFF050B14) : const Color(0xFFF4F6FA);
+    final chatBackgroundColor = isDark ? const Color(0xFF15202B) : const Color(0xFFF4F6FA);
     final chatForegroundColor = isDark ? Colors.white : Colors.black87;
-    final chatDividerColor = isDark ? const Color(0xFF2C3A4C) : const Color(0xFFE2E8F0);
+    final chatDividerColor = isDark ? const Color(0xFF38444D) : const Color(0xFFE2E8F0);
 
     return Scaffold(
       backgroundColor: chatBackgroundColor,
@@ -247,13 +247,13 @@ class _SupportDetailScreenState extends ConsumerState<SupportDetailScreen> {
 
     final bubbleColor = isMe
         ? AppTheme.primaryColor
-        : (isDark ? const Color(0xFF202938) : const Color(0xFFE5E7EB));
+        : (isDark ? const Color(0xFF192734) : const Color(0xFFE5E7EB));
     final textColor = isMe ? Colors.white : (isDark ? Colors.white : Colors.black87);
     final timeColor = isMe
         ? Colors.white.withOpacity(0.85)
         : (isDark ? Colors.white.withOpacity(0.75) : Colors.black45);
 
-    final avatarColor = isDark ? const Color(0xFF111827) : const Color(0xFFE5E7EB);
+    final avatarColor = isDark ? const Color(0xFF192734) : const Color(0xFFE5E7EB);
     final avatarIconColor = isDark ? Colors.white : Colors.black87;
 
     final avatar = Container(
@@ -340,8 +340,8 @@ class _SupportDetailScreenState extends ConsumerState<SupportDetailScreen> {
   }
 
   Widget _buildInputArea(Color chatBackgroundColor, {required bool isDark}) {
-    final inputFieldBg = isDark ? const Color(0xFF111827) : Colors.white;
-    final inputFieldBorder = isDark ? const Color(0xFF1F2937) : const Color(0xFFE2E8F0);
+    final inputFieldBg = isDark ? const Color(0xFF192734) : Colors.white;
+    final inputFieldBorder = isDark ? const Color(0xFF38444D) : const Color(0xFFE2E8F0);
     final inputTextColor = isDark ? Colors.white : Colors.black87;
     final inputHintColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF64748B);
     final inputShadowColor = isDark ? Colors.black.withOpacity(0.6) : Colors.black.withOpacity(0.12);

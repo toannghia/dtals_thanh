@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 import '../../data/auth_repository.dart';
 import '../../../../core/widgets/app_toast.dart';
+import '../widgets/turnstile_captcha.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -28,6 +29,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _obscureConfirmPassword = true;
   bool _rememberMe = false;
   bool _isLoading = false;
+  String _captchaToken = '';
 
   @override
   void dispose() {
@@ -42,6 +44,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   Future<void> _handleRegister() async {
     if (_formKey.currentState?.validate() ?? false) {
+      if (_captchaToken.isEmpty) {
+        AppToast.show(context, 'Vui lòng xác minh Captcha', type: AppToastType.warning);
+        return;
+      }
+
       FocusScope.of(context).unfocus();
       setState(() => _isLoading = true);
       
@@ -52,6 +59,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           'email': _emailController.text.trim(),
           'phoneNumber': _phoneController.text.trim(),
           'password': _passwordController.text,
+          'captchaToken': _captchaToken,
         });
 
         if (_rememberMe) {
@@ -93,13 +101,33 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           );
         }
       } on DioException catch (e) {
-        String message = e.response?.data?['message']?.toString() ?? 'Đăng ký thất bại';
+        String message = 'Đăng ký thất bại';
+        if (e.response?.data != null) {
+          final data = e.response!.data;
+          if (data is Map) {
+            final msg = data['message'];
+            if (msg is List) {
+              message = msg.join('\\n'); // Nếu là mảng lỗi (thường gặp ở NestJS)
+            } else if (msg != null && msg.toString().toLowerCase() != 'internal server error') {
+              message = msg.toString();
+            } else if (data['error'] != null) {
+              message = data['error'].toString();
+            } else {
+              message = 'Lỗi máy chủ (500)';
+            }
+          } else {
+            message = data.toString();
+          }
+        } else if (e.message != null) {
+          message = e.message!;
+        }
+
         if (mounted) {
           AppToast.show(context, message, type: AppToastType.error);
         }
       } catch (e) {
         if (mounted) {
-          AppToast.show(context, 'Đã xảy ra lỗi không mong muốn', type: AppToastType.error);
+          AppToast.show(context, 'Lỗi hệ thống: $e', type: AppToastType.error);
         }
       } finally {
         if (mounted) setState(() => _isLoading = false);
@@ -123,7 +151,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: isDark 
-                    ? [const Color(0xFF1E3A8A), const Color(0xFF0F172A)]
+                    ? [const Color(0xFF1E3A8A), const Color(0xFF15202B)]
                     : [const Color(0xFF2563EB), const Color(0xFF1D4ED8)],
                 ),
               ),
@@ -261,8 +289,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  const Text('Nhớ tài khoản cho lần đăng nhập sau', style: TextStyle(fontWeight: FontWeight.w500)),
+                                  const Expanded(
+                                    child: Text(
+                                      'Nhớ tài khoản cho lần đăng nhập sau',
+                                      style: TextStyle(fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
                                 ],
+                              ),
+                              const SizedBox(height: 16),
+                              
+                              TurnstileCaptcha(
+                                onTokenReceived: (token) {
+                                  setState(() {
+                                    _captchaToken = token;
+                                  });
+                                },
                               ),
                               const SizedBox(height: 24),
                               

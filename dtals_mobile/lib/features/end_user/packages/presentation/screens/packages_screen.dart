@@ -143,7 +143,7 @@ class _PackageCard extends StatelessWidget {
     final softText = colorScheme.onSurface.withOpacity(isDark ? 0.6 : 0.5);
     final price = PackagesScreen._formatPrice(pkg.price);
     final cardColor = isDark
-        ? (isFeatured ? const Color(0xFF0F172A) : const Color(0xFF11161D))
+        ? (isFeatured ? const Color(0xFF192734) : const Color(0xFF15202B))
         : (isFeatured ? colorScheme.surface : colorScheme.surface);
     final borderColor = isFeatured ? colorScheme.primary : colorScheme.outlineVariant;
     final buttonColor = isFeatured ? colorScheme.primary : colorScheme.surfaceVariant;
@@ -286,7 +286,7 @@ class _ImportantNote extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF0F131A) : colorScheme.surfaceVariant,
+          color: isDark ? const Color(0xFF192734) : colorScheme.surfaceVariant,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: colorScheme.outlineVariant),
         ),
@@ -354,10 +354,10 @@ class _PurchaseSheetColors {
 
     if (isDark) {
       return const _PurchaseSheetColors._(
-        background: Color(0xFF121212),
-        surface: Color(0xFF1A1F26),
-        surfaceElevated: Color(0xFF11161D),
-        border: Color(0xFF2A3340),
+        background: Color(0xFF15202B),
+        surface: Color(0xFF192734),
+        surfaceElevated: Color(0xFF22303C),
+        border: Color(0xFF38444D),
         accent: AppTheme.primaryColor,
         label: Color(0xFF94A3B8),
         muted: Color(0xFF64748B),
@@ -365,7 +365,7 @@ class _PurchaseSheetColors {
         badgeBg: Color(0xFF0C2B2F),
         badgeBorder: Color(0xFF164E63),
         boltCircleFill: Color(0xFFFFFFFF),
-        boltIcon: Color(0xFF121212),
+        boltIcon: Color(0xFF15202B),
         buttonForeground: Color(0xFF0B0F14),
       );
     }

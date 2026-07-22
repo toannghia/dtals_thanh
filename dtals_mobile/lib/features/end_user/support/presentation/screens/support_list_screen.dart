@@ -50,7 +50,7 @@ class _SupportListScreenState extends ConsumerState<SupportListScreen> {
     final ticketsAsync = ref.watch(supportTicketsProvider);
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF0B0F14) : colorScheme.background;
+    final bgColor = isDark ? const Color(0xFF15202B) : colorScheme.surface;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -211,8 +211,8 @@ class _StatsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? const Color(0xFF11161D) : colorScheme.surface;
-    final borderColor = isDark ? const Color(0xFF1F2937) : colorScheme.outlineVariant;
+    final cardColor = isDark ? const Color(0xFF192734) : colorScheme.surface;
+    final borderColor = isDark ? const Color(0xFF38444D) : colorScheme.outlineVariant;
     final labelColor = colorScheme.onSurface.withOpacity(isDark ? 0.7 : 0.6);
 
     Widget statBox(String value, String label) {
@@ -259,8 +259,8 @@ class _SearchField extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final fill = isDark ? const Color(0xFF10161E) : colorScheme.surfaceVariant;
-    final border = isDark ? const Color(0xFF1F2937) : colorScheme.outlineVariant;
+    final fill = isDark ? const Color(0xFF192734) : colorScheme.surfaceVariant;
+    final border = isDark ? const Color(0xFF38444D) : colorScheme.outlineVariant;
     final hint = colorScheme.onSurface.withOpacity(isDark ? 0.6 : 0.55);
 
     return Padding(
@@ -352,8 +352,8 @@ class _TicketCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
-    final cardColor = isDark ? const Color(0xFF11161D) : theme.cardColor;
-    final borderColor = isDark ? const Color(0xFF1F2937) : colorScheme.outlineVariant;
+    final cardColor = isDark ? const Color(0xFF192734) : theme.cardColor;
+    final borderColor = isDark ? const Color(0xFF38444D) : colorScheme.outlineVariant;
     final subtitleColor = colorScheme.onSurface.withOpacity(isDark ? 0.7 : 0.6);
     final metaColor = colorScheme.onSurface.withOpacity(isDark ? 0.6 : 0.5);
     final statusColor = _statusColor(ticket.status, colorScheme);
@@ -491,9 +491,9 @@ class _CreateTicketColors {
 
     if (isDark) {
       return const _CreateTicketColors._(
-        background: Color(0xFF000000),
-        card: Color(0xFF1A1A1A),
-        border: Color(0xFF3A3F47),
+        background: Color(0xFF15202B),
+        card: Color(0xFF192734),
+        border: Color(0xFF38444D),
         accent: Color(0xFF4FC3F7),
         onSurface: Color(0xFFFFFFFF),
         muted: Color(0xFF94A3B8),

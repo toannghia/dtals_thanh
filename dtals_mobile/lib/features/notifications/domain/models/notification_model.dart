@@ -58,7 +58,13 @@ abstract class NotificationModel with _$NotificationModel {
 
   static DateTime _parseDate(dynamic date) {
     if (date == null) return DateTime.now();
-    if (date is DateTime) return date;
-    return DateTime.tryParse(date.toString()) ?? DateTime.now();
+    if (date is DateTime) return date.toLocal();
+    String dateStr = date.toString();
+    // If it's just a raw date string without timezone info, assume it's UTC from backend
+    if (!dateStr.endsWith('Z') && !dateStr.contains(RegExp(r'[+-]\d{2}?:?\d{2}$'))) {
+      dateStr += 'Z';
+    }
+    final parsed = DateTime.tryParse(dateStr);
+    return parsed?.toLocal() ?? DateTime.now();
   }
 }
