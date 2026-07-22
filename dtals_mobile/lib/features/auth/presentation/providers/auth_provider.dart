@@ -1,8 +1,16 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
+import '../../../../core/network/api_client.dart';
 import '../../../../core/storage/secure_storage.dart';
 import '../../data/auth_repository.dart';
+import '../../../../features/end_user/dashboard/presentation/providers/dashboard_provider.dart';
+import '../../../../features/end_user/ntrip_accounts/presentation/providers/ntrip_accounts_provider.dart';
+import '../../../../features/end_user/orders/presentation/providers/orders_provider.dart';
+import '../../../../features/end_user/support/presentation/providers/support_providers.dart';
+import '../../../../features/profile/presentation/providers/profile_provider.dart';
+import '../../../../features/notifications/presentation/providers/notification_provider.dart';
 
 enum AuthStatus { initial, authenticated, unauthenticated, loading }
 
@@ -26,8 +34,20 @@ class AuthNotifier extends Notifier<AuthState> {
   final SecureStorage _storage = SecureStorage();
   final AuthRepository _repository = AuthRepository();
 
+  StreamSubscription<void>? _unauthorizedSub;
+
   @override
   AuthState build() {
+    _unauthorizedSub = ApiClient.unauthorizedStream.stream.listen((_) {
+      if (state.status != AuthStatus.unauthenticated) {
+        logout();
+      }
+    });
+
+    ref.onDispose(() {
+      _unauthorizedSub?.cancel();
+    });
+
     checkAuth();
     return AuthState.initial();
   }
@@ -124,6 +144,12 @@ class AuthNotifier extends Notifier<AuthState> {
 
   Future<void> logout() async {
     await _storage.deleteToken();
+    ref.invalidate(dashboardProvider);
+    ref.invalidate(ntripAccountsProvider);
+    ref.invalidate(ordersProvider);
+    ref.invalidate(supportTicketsProvider);
+    ref.invalidate(profileProvider);
+    ref.invalidate(notificationListProvider);
     state = AuthState(status: AuthStatus.unauthenticated);
   }
 }

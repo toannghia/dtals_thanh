@@ -110,23 +110,23 @@ class EndUserDashboard extends ConsumerWidget {
 
     final int step = data.activeStep;
     final String stepTitle = switch (step) {
-      1 => 'Hoàn tất eKYC để bắt đầu',
-      2 => 'Tạo tài khoản NTRIP của bạn',
-      3 => 'Kích hoạt gói cước',
+      2 => 'Hoàn tất eKYC để bắt đầu',
+      3 => 'Tạo tài khoản NTRIP của bạn',
+      4 => 'Kích hoạt gói cước',
       _ => 'Sẵn sàng sử dụng dịch vụ',
     };
 
     final String stepSubtitle = switch (step) {
-      1 => 'Chỉ mất vài phút • dễ thao tác',
-      2 => 'Chọn gói phù hợp • thanh toán nhanh',
-      3 => 'Kiểm tra thông tin • thanh toán 1 lần',
+      2 => 'Chỉ mất vài phút • dễ thao tác',
+      3 => 'Chọn gói phù hợp • thanh toán nhanh',
+      4 => 'Kiểm tra thông tin • thanh toán 1 lần',
       _ => 'Mọi thứ đã sẵn sàng • bạn có thể quản lý ngay',
     };
 
     final Color accent = switch (step) {
-      1 => AppTheme.primaryColor,
       2 => AppTheme.primaryColor,
-      3 => AppTheme.warningColor,
+      3 => AppTheme.primaryColor,
+      4 => AppTheme.primaryColor,
       _ => AppTheme.successColor,
     };
 
@@ -210,7 +210,9 @@ class EndUserDashboard extends ConsumerWidget {
                         color: subtitleColor,
                       ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 20),
+                _buildProcessStepper(context, step, isDark, accent),
+                const SizedBox(height: 20),
                 Row(
                   children: [
                     Expanded(
@@ -218,15 +220,15 @@ class EndUserDashboard extends ConsumerWidget {
                         height: 48,
                         child: FilledButton.icon(
                           onPressed: () {
-                            if (step == 1) {
+                            if (step == 2) {
                               context.push('/user/ekyc');
                               return;
                             }
-                            if (step == 2) {
+                            if (step == 3) {
                               context.push('/user/ntrip-accounts');
                               return;
                             }
-                            if (step == 3) {
+                            if (step == 4) {
                               context.push('/user/orders');
                               return;
                             }
@@ -242,10 +244,10 @@ class EndUserDashboard extends ConsumerWidget {
                           icon: const Icon(Icons.play_arrow_rounded),
                           label: Text(
                             switch (step) {
-                              1 => 'Bắt đầu eKYC',
-                              2 => 'Tạo tài khoản NTRIP',
-                              3 => 'Thanh toán & kích hoạt',
-                              _ => 'Quản lý dịch vụ',
+                              2 => 'Bắt đầu xác thực eKYC',
+                              3 => 'Tạo tài khoản NTRIP ngay',
+                              4 => 'Thanh toán đơn hàng',
+                              _ => 'Quản lý tài khoản NTRIP',
                             },
                             style: const TextStyle(fontWeight: FontWeight.w900),
                           ),
@@ -259,6 +261,86 @@ class EndUserDashboard extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildProcessStepper(BuildContext context, int currentStep, bool isDark, Color currentAccent) {
+    final cs = Theme.of(context).colorScheme;
+    final steps = ['Đăng ký', 'eKYC', 'Tạo TK', 'Thanh toán', 'Kích hoạt'];
+    
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: List.generate(steps.length * 2 - 1, (index) {
+        if (index.isOdd) {
+          // Divider
+          final prevStep = (index ~/ 2) + 1;
+          final isPassed = prevStep < currentStep;
+          return Expanded(
+            child: Container(
+              margin: const EdgeInsets.only(top: 14),
+              height: 2,
+              color: isPassed ? currentAccent : cs.onSurface.withOpacity(isDark ? 0.2 : 0.1),
+            ),
+          );
+        }
+        
+        // Node
+        final stepIndex = index ~/ 2;
+        final stepNum = stepIndex + 1;
+        final isActive = stepNum == currentStep;
+        final isPassed = stepNum < currentStep;
+        
+        final color = isPassed 
+            ? currentAccent 
+            : isActive 
+                ? currentAccent 
+                : cs.onSurface.withOpacity(isDark ? 0.3 : 0.2);
+                
+        return SizedBox(
+          width: 44, // Slightly smaller to fit 5 steps
+          child: Column(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isPassed ? color : (isActive ? color.withOpacity(0.15) : cs.surface.withOpacity(0.5)),
+                  border: Border.all(
+                    color: isPassed ? Colors.transparent : color,
+                    width: isActive ? 2.5 : 1,
+                  ),
+                ),
+                child: Center(
+                  child: isPassed 
+                      ? const Icon(Icons.check, size: 16, color: Colors.white)
+                      : Text(
+                          stepNum.toString(), 
+                          style: TextStyle(
+                            fontSize: 13, 
+                            fontWeight: FontWeight.bold,
+                            color: isActive ? color : color
+                          )
+                        ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                steps[stepIndex], 
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.visible,
+                style: TextStyle(
+                  fontSize: 9,
+                  height: 1.1,
+                  fontWeight: isActive ? FontWeight.w900 : FontWeight.w600,
+                  color: (isActive || isPassed) ? (isDark ? Colors.white : Colors.black87) : cs.onSurface.withOpacity(0.5)
+                )
+              )
+            ],
+          ),
+        );
+      }),
     );
   }
 

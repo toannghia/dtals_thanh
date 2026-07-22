@@ -23,10 +23,10 @@ class DashboardOverview {
   bool get isKycVerified => ekycStatus == 'APPROVED' || ekycStatus == 'VERIFIED';
 
   int get activeStep {
-    if (!isKycVerified) return 1;
-    if (pendingOrdersCount > 0) return 3;
-    if (ntripCount == 0) return 2;
-    return 4;
+    if (!isKycVerified) return 2; // Step 2: eKYC (Step 1 is Register, already done)
+    if (pendingOrdersCount > 0) return 4; // Step 4: Payment
+    if (ntripCount == 0) return 3; // Step 3: Create NTRIP
+    return 5; // Step 5: Active
   }
 }
 

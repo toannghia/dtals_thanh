@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../../../../../core/network/api_client.dart';
@@ -15,7 +16,17 @@ class DashboardRepository {
     // 1. Fetch eKYC Status
     try {
       final ekycRes = await _apiClient.dio.get('/ekyc/status');
-      ekycStatus = ekycRes.data['kycStatus'] ?? ekycRes.data['status'] ?? 'NONE';
+      final data = ekycRes.data;
+      if (data is Map) {
+        ekycStatus = data['kycStatus']?.toString() ?? data['status']?.toString() ?? 'NONE';
+      } else if (data is String) {
+        try {
+          final decoded = jsonDecode(data);
+          if (decoded is Map) {
+            ekycStatus = decoded['kycStatus']?.toString() ?? decoded['status']?.toString() ?? 'NONE';
+          }
+        } catch (_) {}
+      }
     } on DioException catch (e) {
       if (e.response?.statusCode != 404) {
         debugPrint('Error fetching eKYC status: $e');
