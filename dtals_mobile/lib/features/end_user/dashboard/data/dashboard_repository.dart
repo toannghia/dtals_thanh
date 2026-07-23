@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../../../../../core/network/api_client.dart';
+import '../../ntrip_accounts/data/ntrip_account_repository.dart';
 import 'models/dashboard_overview.dart';
 
 class DashboardRepository {
@@ -39,14 +40,9 @@ class DashboardRepository {
 
     // 2. Fetch NTRIP Count
     try {
-      final ntripRes = await _apiClient.dio.get('/ntrip-users', queryParameters: {'page': 1, 'size': 1});
-      final resData = ntripRes.data;
-      ntripCount = (resData is Map) ? (resData['total'] ?? 0) : 0;
-    } on DioException catch (e) {
-      if (e.response?.statusCode != 404) {
-        debugPrint('Error fetching NTRIP count: $e');
-      }
-      ntripCount = 0;
+      final repo = NtripAccountRepository();
+      final accounts = await repo.getMyAccounts();
+      ntripCount = accounts.length;
     } catch (e) {
       debugPrint('Unexpected error fetching NTRIP count: $e');
       ntripCount = 0;
