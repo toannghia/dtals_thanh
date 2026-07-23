@@ -7,13 +7,28 @@ import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/widgets/app_toast.dart';
 import '../../../../admin/ntrip/data/models/ntrip_package.dart';
 import '../../../ntrip_accounts/data/ntrip_account_repository.dart';
+import '../../../dashboard/presentation/providers/dashboard_provider.dart';
+import '../../../ntrip_accounts/presentation/providers/ntrip_accounts_provider.dart';
+import '../../../orders/presentation/providers/orders_provider.dart';
 import '../../../orders/data/order_repository.dart';
 
-class PackagesScreen extends ConsumerWidget {
+class PackagesScreen extends ConsumerStatefulWidget {
   const PackagesScreen({super.key});
 
+  static String _formatPrice(double price) {
+    return price.toStringAsFixed(0).replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]}.',
+    );
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PackagesScreen> createState() => _PackagesScreenState();
+}
+
+class _PackagesScreenState extends ConsumerState<PackagesScreen> {
+  @override
+  Widget build(BuildContext context) {
     final packagesAsync = ref.watch(packagesProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -58,17 +73,13 @@ class PackagesScreen extends ConsumerWidget {
     );
   }
 
-  static String _formatPrice(double price) {
-    return price.toStringAsFixed(0).replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]}.',
-    );
-  }
+
 
   void _openCreateAccount(BuildContext context, NtripPackage pkg) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
@@ -558,6 +569,13 @@ class _PurchaseBottomSheetState extends State<_PurchaseBottomSheet> {
       final checkoutRes = await orderRepo.createCheckout(order.id);
 
       if (!mounted) return;
+      
+      // Force refresh of user data because a new order was created
+      final container = ProviderScope.containerOf(context);
+      container.invalidate(dashboardProvider);
+      container.invalidate(ntripAccountsProvider);
+      container.invalidate(ordersProvider);
+
       if (checkoutRes['checkoutUrl'] != null) {
         final url = Uri.encodeComponent(checkoutRes['checkoutUrl']);
         Navigator.pop(context);

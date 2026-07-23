@@ -146,6 +146,7 @@ class ProfileScreen extends ConsumerWidget {
 
     await showModalBottomSheet<void>(
       context: context,
+      useRootNavigator: true,
       backgroundColor: c.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -316,6 +317,7 @@ class ProfileScreen extends ConsumerWidget {
                         context: context,
                         isScrollControlled: true,
                         useSafeArea: false,
+                        useRootNavigator: true,
                         backgroundColor: Colors.transparent,
                         builder: (ctx) {
                           final height = MediaQuery.sizeOf(ctx).height;
