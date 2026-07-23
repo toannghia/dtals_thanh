@@ -67,16 +67,12 @@ class MyNtripAccounts extends ConsumerWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/user/packages'),
         backgroundColor: AppTheme.primaryColor,
         foregroundColor: isDark ? const Color(0xFF0B0F14) : Colors.white,
         elevation: 6,
-        icon: const Icon(Icons.add_rounded, size: 22),
-        label: const Text(
-          'Thêm tài khoản',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-        ),
+        child: const Icon(Icons.person_add_alt_1_rounded, size: 24),
       ),
     );
   }

@@ -19,7 +19,6 @@ class SupportListScreen extends ConsumerStatefulWidget {
 }
 
 class _SupportListScreenState extends ConsumerState<SupportListScreen> {
-  Timer? _refreshTimer;
   final TextEditingController _searchCtrl = TextEditingController();
   String _searchQuery = '';
 
@@ -31,17 +30,11 @@ class _SupportListScreenState extends ConsumerState<SupportListScreen> {
       if (next == _searchQuery) return;
       setState(() => _searchQuery = next);
     });
-    _refreshTimer = Timer.periodic(const Duration(seconds: 3), (_) {
-      if (mounted) {
-        ref.invalidate(supportTicketsProvider);
-      }
-    });
   }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
-    _refreshTimer?.cancel();
     super.dispose();
   }
 
@@ -103,12 +96,13 @@ class _SupportListScreenState extends ConsumerState<SupportListScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () {
           showModalBottomSheet(
             context: context,
             isScrollControlled: true,
             useSafeArea: false,
+            useRootNavigator: true,
             backgroundColor: Colors.transparent,
             builder: (ctx) {
               final height = MediaQuery.sizeOf(ctx).height;
@@ -123,10 +117,9 @@ class _SupportListScreenState extends ConsumerState<SupportListScreen> {
             }
           });
         },
-        label: const Text('Tạo yêu cầu', style: TextStyle(fontWeight: FontWeight.w700)),
-        icon: const Icon(Icons.add_rounded),
         backgroundColor: AppTheme.primaryColor,
         foregroundColor: isDark ? const Color(0xFF0B0F14) : Colors.white,
+        child: const Icon(Icons.post_add_rounded, size: 24),
       ),
     );
   }
