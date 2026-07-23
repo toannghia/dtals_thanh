@@ -32,6 +32,6 @@ class AdminNtripAccountRepository {
   }
 
   Future<void> deleteAccount(String id) async {
-    await _apiClient.dio.delete('/ntrip-users/$id');
+    await _apiClient.dio.post('/ntrip-users/delete', data: {'ids': [id]});
   }
 }
