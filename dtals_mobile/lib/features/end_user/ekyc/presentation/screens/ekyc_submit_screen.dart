@@ -479,6 +479,9 @@ class _EkycSubmitScreenState extends State<EkycSubmitScreen> with SingleTickerPr
           }
         }
         AppToast.show(context, errorMsg, type: AppToastType.error);
+        if (e is DioException && e.response?.statusCode == 401) {
+          context.pop();
+        }
       }
     }
   }

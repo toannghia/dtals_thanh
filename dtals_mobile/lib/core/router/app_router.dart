@@ -241,6 +241,6 @@ int _getUserIndex(String path) {
   if (path.startsWith('/user/ntrip-accounts') || path.startsWith('/user/packages')) return 1;
   if (path.startsWith('/user/map')) return 2;
   if (path.startsWith('/user/support')) return 3;
-  if (path.startsWith('/user/profile')) return 4;
+  if (path.startsWith('/user/profile') || path.startsWith('/user/orders')) return 4;
   return 0;
 }

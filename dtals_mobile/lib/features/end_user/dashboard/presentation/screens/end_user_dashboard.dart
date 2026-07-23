@@ -27,9 +27,9 @@ class EndUserDashboard extends ConsumerWidget {
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   children: [
-                    _buildHeroCard(context, dashboardState.data, isDark),
+                    _buildHeroCard(context, ref, dashboardState.data, isDark),
                     const SizedBox(height: 14),
-                    _buildQuickActions(context),
+                    _buildQuickActions(context, ref),
                     const SizedBox(height: 14),
                     _buildStatusSection(context, dashboardState.data, isDark),
                     const SizedBox(height: 14),
@@ -105,7 +105,7 @@ class EndUserDashboard extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeroCard(BuildContext context, dynamic data, bool isDark) {
+  Widget _buildHeroCard(BuildContext context, WidgetRef ref, dynamic data, bool isDark) {
     final cs = Theme.of(context).colorScheme;
 
     final int step = data.activeStep;
@@ -219,20 +219,17 @@ class EndUserDashboard extends ConsumerWidget {
                       child: SizedBox(
                         height: 48,
                         child: FilledButton.icon(
-                          onPressed: () {
+                          onPressed: () async {
                             if (step == 2) {
-                              context.push('/user/ekyc');
-                              return;
+                              await context.push('/user/ekyc');
+                            } else if (step == 3) {
+                              await context.push('/user/ntrip-accounts');
+                            } else if (step == 4) {
+                              await context.push('/user/orders');
+                            } else {
+                              await context.push('/user/ntrip-accounts');
                             }
-                            if (step == 3) {
-                              context.push('/user/ntrip-accounts');
-                              return;
-                            }
-                            if (step == 4) {
-                              context.push('/user/orders');
-                              return;
-                            }
-                            context.push('/user/ntrip-accounts');
+                            ref.invalidate(dashboardProvider);
                           },
                           style: FilledButton.styleFrom(
                             backgroundColor: accent,
@@ -344,7 +341,7 @@ class EndUserDashboard extends ConsumerWidget {
     );
   }
 
-  Widget _buildQuickActions(BuildContext context) {
+  Widget _buildQuickActions(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
 
     Widget action({
@@ -401,7 +398,10 @@ class EndUserDashboard extends ConsumerWidget {
               child: action(
                 icon: Icons.account_balance_wallet_rounded,
                 title: 'Tài khoản NTRIP',
-                onTap: () => context.push('/user/ntrip-accounts'),
+                onTap: () async {
+                  await context.push('/user/ntrip-accounts');
+                  ref.invalidate(dashboardProvider);
+                },
               ),
             ),
             const SizedBox(width: 12),
@@ -409,7 +409,10 @@ class EndUserDashboard extends ConsumerWidget {
               child: action(
                 icon: Icons.inventory_2_rounded,
                 title: 'Gói cước',
-                onTap: () => context.push('/user/packages'),
+                onTap: () async {
+                  await context.push('/user/packages');
+                  ref.invalidate(dashboardProvider);
+                },
               ),
             ),
           ],
@@ -421,7 +424,10 @@ class EndUserDashboard extends ConsumerWidget {
               child: action(
                 icon: Icons.map_outlined,
                 title: 'Bản đồ trạm',
-                onTap: () => context.push('/user/map'),
+                onTap: () async {
+                  await context.push('/user/map');
+                  ref.invalidate(dashboardProvider);
+                },
               ),
             ),
             const SizedBox(width: 12),
@@ -429,7 +435,10 @@ class EndUserDashboard extends ConsumerWidget {
               child: action(
                 icon: Icons.support_agent_rounded,
                 title: 'Hỗ trợ',
-                onTap: () => context.push('/user/support'),
+                onTap: () async {
+                  await context.push('/user/support');
+                  ref.invalidate(dashboardProvider);
+                },
               ),
             ),
           ],
@@ -441,7 +450,10 @@ class EndUserDashboard extends ConsumerWidget {
               child: action(
                 icon: Icons.person_rounded,
                 title: 'Hồ sơ cá nhân',
-                onTap: () => context.push('/user/profile'),
+                onTap: () async {
+                  await context.push('/user/profile');
+                  ref.invalidate(dashboardProvider);
+                },
                 accent: AppTheme.primaryLight,
               ),
             ),
@@ -450,7 +462,10 @@ class EndUserDashboard extends ConsumerWidget {
               child: action(
                 icon: Icons.receipt_long_rounded,
                 title: 'Đơn hàng / thanh toán',
-                onTap: () => context.push('/user/orders'),
+                onTap: () async {
+                  await context.push('/user/orders');
+                  ref.invalidate(dashboardProvider);
+                },
                 accent: AppTheme.successColor,
               ),
             ),

@@ -355,43 +355,36 @@ class _EndUsersScreenState extends ConsumerState<EndUsersScreen> {
   // ── detail sheet ──────────────────────────────────────────────────────────
 
   void _showDetail(AdminEndUser user) {
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: _C(context).surface,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.60,
-        minChildSize: 0.35,
-        maxChildSize: 0.90,
-        expand: false,
-        builder: (_, sc) => _DetailSheet(
-          user: user, scroll: sc,
-          onToggle: () async {
-            final ns =
-                user.status == 'ACTIVE' ? 'BLOCKED' : 'ACTIVE';
-            try {
-              await AdminEndUserRepository()
-                  .updateStatus(user.id, ns);
-              ref.read(endUsersProvider.notifier).updateUserStatus(user.id, ns);
-              if (ctx.mounted) { Navigator.pop(ctx); }
-              if (mounted) {
-                AppToast.show(
-                  context,
-                  ns == 'BLOCKED'
-                      ? 'Đã khóa tài khoản'
-                      : 'Đã mở khóa',
-                  type: AppToastType.success,
-                );
+      builder: (ctx) => Dialog(
+        backgroundColor: _C(context).surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: _DetailSheet(
+            user: user,
+            onToggle: () async {
+              final ns = user.status == 'ACTIVE' ? 'BLOCKED' : 'ACTIVE';
+              try {
+                await AdminEndUserRepository().updateStatus(user.id, ns);
+                ref.read(endUsersProvider.notifier).updateUserStatus(user.id, ns);
+                if (ctx.mounted) { Navigator.pop(ctx); }
+                if (mounted) {
+                  AppToast.show(
+                    context,
+                    ns == 'BLOCKED' ? 'Đã khóa tài khoản' : 'Đã mở khóa',
+                    type: AppToastType.success,
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  AppToast.show(context, 'Lỗi: $e', type: AppToastType.error);
+                }
               }
-            } catch (e) {
-              if (mounted) {
-                AppToast.show(context, 'Lỗi: $e',
-                    type: AppToastType.error);
-              }
-            }
-          },
+            },
+          ),
         ),
       ),
     );
@@ -1240,13 +1233,11 @@ class _ConfirmDialog extends StatelessWidget {
 // ─── _DetailSheet ────────────────────────────────────────────────────────────
 
 class _DetailSheet extends StatelessWidget {
-  final AdminEndUser     user;
-  final ScrollController scroll;
-  final VoidCallback     onToggle;
+  final AdminEndUser user;
+  final VoidCallback onToggle;
 
   const _DetailSheet({
     required this.user,
-    required this.scroll,
     required this.onToggle,
   });
 
@@ -1255,20 +1246,18 @@ class _DetailSheet extends StatelessWidget {
     final c      = _C(context);
     final active = user.status == 'ACTIVE';
 
-    return ListView(
-      controller: scroll,
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-      children: [
-        Center(
-          child: Container(
-            width: 36, height: 4,
-            margin: const EdgeInsets.only(bottom: 20),
-            decoration: BoxDecoration(
-                color: c.border,
-                borderRadius: BorderRadius.circular(2)),
-          ),
-        ),
-        Row(children: [
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
           _AvatarWidget(name: user.fullName ?? user.username, radius: 28),
           const SizedBox(width: 14),
           Expanded(
@@ -1289,43 +1278,54 @@ class _DetailSheet extends StatelessWidget {
                     _KycText(user.kycStatus),
                   ]),
                 ]),
-          ),
-        ]),
-        const SizedBox(height: 20),
-        Divider(color: c.border),
-        const SizedBox(height: 12),
-        _detailRow(c, 'Username',    user.username),
-        _detailRow(c, 'Email',       user.email       ?? 'N/A'),
-        _detailRow(c, 'Số điện thoại', user.phoneNumber ?? 'N/A'),
-        _detailRow(c, 'KYC',         user.kycStatus),
-        _detailRow(c, 'Ngày tạo',
-            DateFormat('dd/MM/yyyy HH:mm').format(user.createdAt)),
-        _detailRow(c, 'Đăng nhập cuối',
-            user.lastLogin != null
-                ? DateFormat('dd/MM/yyyy HH:mm').format(user.lastLogin!)
-                : 'Chưa đăng nhập'),
-        const SizedBox(height: 24),
-        ElevatedButton.icon(
-          onPressed: onToggle,
-          icon: Icon(
-              active
-                  ? Icons.block_outlined
-                  : Icons.check_circle_outline,
-              size: 18),
-          label: Text(
-              active ? 'Khóa tài khoản' : 'Mở khóa tài khoản'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: active
-                ? const Color(0xFFFF5C5C)
-                : const Color(0xFF22D37E),
-            foregroundColor: Colors.white,
-            elevation: 0,
-            minimumSize: const Size(double.infinity, 46),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+              ),
+            ],
           ),
         ),
-      ],
+        IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: Icon(Icons.close, color: c.sub, size: 24),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Divider(color: c.border),
+          const SizedBox(height: 12),
+          _detailRow(c, 'Username',    user.username),
+          _detailRow(c, 'Email',       user.email       ?? 'N/A'),
+          _detailRow(c, 'Số điện thoại', user.phoneNumber ?? 'N/A'),
+          _detailRow(c, 'KYC',         user.kycStatus),
+          _detailRow(c, 'Ngày tạo',
+              DateFormat('dd/MM/yyyy HH:mm').format(user.createdAt)),
+          _detailRow(c, 'Đăng nhập cuối',
+              user.lastLogin != null
+                  ? DateFormat('dd/MM/yyyy HH:mm').format(user.lastLogin!)
+                  : 'Chưa đăng nhập'),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: onToggle,
+            icon: Icon(
+                active
+                    ? Icons.block_outlined
+                    : Icons.check_circle_outline,
+                size: 18),
+            label: Text(
+                active ? 'Khóa tài khoản' : 'Mở khóa tài khoản'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: active
+                  ? const Color(0xFFFF5C5C)
+                  : const Color(0xFF22D37E),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              minimumSize: const Size(double.infinity, 46),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

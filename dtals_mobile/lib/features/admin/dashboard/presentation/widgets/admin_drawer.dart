@@ -55,6 +55,7 @@ class AdminDrawer extends ConsumerWidget {
           ),
           Expanded(
             child: ListView(
+              key: const PageStorageKey('AdminDrawerScrollKey'),
               padding: EdgeInsets.zero,
               children: [
                 _buildDrawerItem(

@@ -57,7 +57,10 @@ class AuthNotifier extends Notifier<AuthState> {
     if (token != null) {
       try {
         final profile = await _repository.getProfile();
-        final role = profile['role']?.toString() ?? 'END_USER';
+        final roleRaw = profile['role'];
+        final role = (roleRaw is Map) 
+            ? (roleRaw['name']?.toString() ?? 'END_USER') 
+            : (roleRaw?.toString() ?? 'END_USER');
         state = AuthState(
           status: AuthStatus.authenticated,
           token: token,
@@ -88,7 +91,10 @@ class AuthNotifier extends Notifier<AuthState> {
 
       final token = response['access_token'] as String?;
       final user = response['user'] as Map<String, dynamic>?;
-      final role = user?['role']?.toString() ?? 'END_USER';
+      final roleRaw = user?['role'];
+      final role = (roleRaw is Map)
+          ? (roleRaw['name']?.toString() ?? 'END_USER')
+          : (roleRaw?.toString() ?? 'END_USER');
 
       if (token == null || token.isEmpty) {
         state = AuthState(
@@ -148,7 +154,6 @@ class AuthNotifier extends Notifier<AuthState> {
     ref.invalidate(ntripAccountsProvider);
     ref.invalidate(ordersProvider);
     ref.invalidate(supportTicketsProvider);
-    ref.invalidate(profileProvider);
     ref.invalidate(notificationListProvider);
     state = AuthState(status: AuthStatus.unauthenticated);
   }
