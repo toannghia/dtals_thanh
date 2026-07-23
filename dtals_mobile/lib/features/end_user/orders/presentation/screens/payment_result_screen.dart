@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../dashboard/presentation/providers/dashboard_provider.dart';
+import '../../../ntrip_accounts/presentation/providers/ntrip_accounts_provider.dart';
+import '../providers/orders_provider.dart';
 
-class PaymentResultScreen extends StatelessWidget {
+class PaymentResultScreen extends ConsumerWidget {
   final String status;
   const PaymentResultScreen({super.key, required this.status});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isSuccess = status == 'success';
 
     return Scaffold(
@@ -37,7 +41,12 @@ class PaymentResultScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 48),
                 ElevatedButton(
-                  onPressed: () => context.go('/user'),
+                  onPressed: () {
+                    ref.invalidate(dashboardProvider);
+                    ref.invalidate(ntripAccountsProvider);
+                    ref.invalidate(ordersProvider);
+                    context.go('/user');
+                  },
                   child: const Text('Về bảng điều khiển'),
                 ),
               ],
